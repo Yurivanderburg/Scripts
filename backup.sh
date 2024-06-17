@@ -38,6 +38,15 @@ read varname
 # Check external DISKS #
 ########################
 
+# Check whether mount directory exists
+if ! [ -d $MOUNTPOINT1 ]; then
+    mkdir $MOUNTPOINT1
+fi
+
+if ! [ -d $MOUNTPOINT2 ]; then
+	mkdir $MOUNTPOINT2 
+
+
 for uuid1 in $(lsblk --noheadings --list --output uuid)
 do
         if grep --quiet --fixed-strings $uuid1 $DISK1; then

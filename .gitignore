@@ -1,2 +1,5 @@
 venv
-apodfetch_apikey.txt 
+apodfetch_apikey.txt
+test.py
+test.sh
+source_venv.sh 
