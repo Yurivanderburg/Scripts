@@ -15,10 +15,12 @@ MOUNTPOINT1=/run/mount/Elements1
 MOUNTPOINT2=/run/mount/Elements2
 
 # Target: Location of Borg repos
-TARGET1=$MOUNTPOINT1/BackUps/EndeavourOS/EOS-system
-TARGET2=$MOUNTPOINT2/BackUps/EndeavourOS/EOS-system
+TARGET1=$MOUNTPOINT1/BackUps/EndeavourOS/EOS-system # system disk 1
+TARGET2=$MOUNTPOINT2/BackUps/EndeavourOS/EOS-system # system disk 2
 TARGET3=$MOUNTPOINT1/BackUps/EndeavourOS/EOS-home 	# home disk 1
 TARGET4=$MOUNTPOINT2/BackUps/EndeavourOS/EOS-home 	# home disk 2
+TARGET5=$MOUNTPOINT1/BackUps/EndeavourOS/Pictures   # pics disk 1
+TARGET6=$MOUNTPOINT2/BackUps/EndeavourOS/Pictures   # pics disk 2
 
 # Archive name schema
 DATE=$(date --iso-8601)
@@ -45,7 +47,7 @@ fi
 
 if ! [ -d $MOUNTPOINT2 ]; then
 	mkdir $MOUNTPOINT2 
-
+fi
 
 for uuid1 in $(lsblk --noheadings --list --output uuid)
 do
@@ -116,7 +118,7 @@ if borg create $BORG_OPTS \
   --exclude /home \
   $TARGET1::$DATE \
   / /boot ; then
-	echo ">Completed backup 1/4 (EOS-system Disk 1)"
+	echo ">Completed backup 1/6 (EOS-system Disk 1)"
 else
 	echo "Error: Backup 1 (EOS-system Disk 1) failed."
 fi
@@ -127,7 +129,7 @@ if borg create $BORG_OPTS \
   --exclude /home \
   $TARGET2::$DATE \
   / /boot ; then
-	echo ">Completed backup 2/4 (EOS-system Disk 2)"
+	echo ">Completed backup 2/6 (EOS-system Disk 2)"
 else
 	echo "Error: Backup 2 (EOS-system Disk 2) failed."
 fi
@@ -135,9 +137,10 @@ fi
 # Backup 3: Home backup on Drive 1
 if borg create $BORG_OPTS \
   --exclude 'sh:home/*/.cache' \
+  --exclude /run/mount/ \
   $TARGET3::$DATE \
   /home/ ; then
-	echo ">Completed backup 3/4 (EOS-home Disk 1)"
+	echo ">Completed backup 3/6 (EOS-home Disk 1)"
 else
 	echo "Error: Backup 3 (EOS-home Disk 1) failed."
 fi
@@ -145,13 +148,14 @@ fi
 # Backup 4: Home backup on Drive 2
 if borg create $BORG_OPTS \
   --exclude 'sh:home/*/.cache' \
+  --exclude  /run/mount/ \
   $TARGET4::$DATE \
   /home/ ; then
-	echo ">Completed backup 4/4 (EOS-home Disk 2)"
+	echo ">Completed backup 4/6 (EOS-home Disk 2)"
 else
 	echo "Error: Backup 4 (EOS-home Disk 2) failed."
 fi
-echo "Completed backup for $DATE"
+
 
 
 
@@ -160,14 +164,13 @@ echo "Completed backup for $DATE"
 # Rsync Backups: ~/Pictures #
 #############################
 
-# TODO
+rsync -a --info=progress2 --no-inc-recursive /home/yuri/Pictures/ $TARGET5
+echo "> Completed backup 5/6 (Pictures Disk 1)" 
+
+rsync -a --info=progress2 --no-inc-recursive /home/yuri/Pictures/ $TARGET6
+echo "> Completed backup 6/6 (Pictures Disk 2)"
 
 
-############################################
-# Rclone Backups: Pictures to Proton Drive #
-############################################
-
-# TODO
 
 
 ##################################
@@ -181,3 +184,5 @@ then echo "Disks are still mounted."
 else 
 	echo "Invalid value. Disks will not be mounted."
 fi
+
+echo "Done!"
