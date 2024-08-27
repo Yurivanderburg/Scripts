@@ -1,9 +1,4 @@
 #!/bin/zsh
 
-# Update folder structure:
-rsync -av -f"+ */" -f"- *" "/home/yuri/Pictures/Raw_Files/2024/" "/home/yuri/Pictures/Camera/2024/"
-
-
-# Copy files:
-#
+rsync -a --info=progress2 --no-inc-recursive ~/Pictures/Sony_a7iii/2024/*/output/*.jpg ~/Pictures/Sony_a7iii/Sync_Android/
 #
