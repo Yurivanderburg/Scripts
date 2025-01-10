@@ -7,6 +7,11 @@ mirror() {
 	feh --bg-fill ~/.config/i3/wallpaper/endeavour_pillarsofcreation.png
 }
 
+secondary() {
+	xrandr --output HDMI-A-0 --auto --primary
+	xrandr --output eDP --off
+	feh --bg-fill ~/.config/i3/wallpaper/endeavour_pillarsofcreation.png
+}
 
 secondary_right() {
 	xrandr --output HDMI-A-0 --auto --right-of eDP
@@ -38,6 +43,11 @@ case $1 in
 	mirror)
 	# Set mirror
 	mirror
+	;;
+
+	secondary)
+	# Set only secondary
+	secondary
 	;;
 
 	right)
