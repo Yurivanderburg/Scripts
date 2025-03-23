@@ -29,11 +29,17 @@ DATE=$(date --iso-8601)
 DISK1=/etc/backups/backups.disk1
 DISK2=/etc/backups/backups.disk2
 
-# pw
+# Read password from local file
 password=$(cat /etc/backups/backup.pw)
 
 echo "Do you want to unmount the disks after the backup? (y/n)"
-read varname
+read varname_unmount
+
+echo "Do you want to compact the repositories after the backup? (y/n)"
+read varname_compact
+
+echo "Do you want to separately backup ~/Pictures? (y/n)"
+read varname_pictures
 
 
 ########################
@@ -112,75 +118,107 @@ export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK=no
 export BORG_PASSPHRASE=$password
 
 echo "Starting backups for $DATE"
-# Backup 1: System backup on Drive 1
-if borg create $BORG_OPTS \
-  --exclude root/.cache \
-  --exclude /home \
-  $TARGET1::$DATE \
-  / /boot ; then
-	echo ">Completed backup 1/6 (EOS-system Disk 1)"
-else
-	echo "Error: Backup 1 (EOS-system Disk 1) failed."
-fi
 
-# Backup 2: System backup on Drive 2
-if borg create $BORG_OPTS \
-  --exclude root/.cache \
-  --exclude /home \
-  $TARGET2::$DATE \
-  / /boot ; then
-	echo ">Completed backup 2/6 (EOS-system Disk 2)"
-else
-	echo "Error: Backup 2 (EOS-system Disk 2) failed."
-fi
+# Start backups sequentially on a single Disk, but run backups
+# on both Disks in parallel
 
-# Backup 3: Home backup on Drive 1
-if borg create $BORG_OPTS \
-  --exclude 'sh:home/*/.cache' \
-  --exclude /run/mount/ \
-  $TARGET3::$DATE \
-  /home/ ; then
-	echo ">Completed backup 3/6 (EOS-home Disk 1)"
-else
-	echo "Error: Backup 3 (EOS-home Disk 1) failed."
-fi
+# Disk 1
+(
+	# System backup
+	if borg create $BORG_OPTS \
+	--exclude root/.cache \
+  	--exclude /home \
+  	$TARGET1::$DATE \
+  	/ /boot ; then
+		echo ">Completed backup 1/6 (EOS-system Disk 1)"
+	else
+		echo "Error: Backup 1 (EOS-system Disk 1) failed."
+	fi
 
-# Backup 4: Home backup on Drive 2
-if borg create $BORG_OPTS \
-  --exclude 'sh:home/*/.cache' \
-  --exclude  /run/mount/ \
-  $TARGET4::$DATE \
-  /home/ ; then
-	echo ">Completed backup 4/6 (EOS-home Disk 2)"
-else
-	echo "Error: Backup 4 (EOS-home Disk 2) failed."
-fi
+	# Home backup
+	if borg create $BORG_OPTS \
+  	--exclude 'sh:home/*/.cache' \
+  	--exclude /run/mount/ \
+  	$TARGET3::$DATE \
+  	/home/ ; then
+		echo ">Completed backup 3/6 (EOS-home Disk 1)"
+	else
+		echo "Error: Backup 3 (EOS-home Disk 1) failed."
+	fi
+) &
+
+# Disk 2
+
+(
+	# System backup
+	if borg create $BORG_OPTS \
+  	--exclude root/.cache \
+  	--exclude /home \
+  	$TARGET2::$DATE \
+  	/ /boot ; then
+		echo ">Completed backup 2/6 (EOS-system Disk 2)"
+	else
+		echo "Error: Backup 2 (EOS-system Disk 2) failed."
+	fi
+
+	# Home backup
+	if borg create $BORG_OPTS \
+  	--exclude 'sh:home/*/.cache' \
+  	--exclude  /run/mount/ \
+  	$TARGET4::$DATE \
+  	/home/ ; then
+		echo ">Completed backup 4/6 (EOS-home Disk 2)"
+	else
+		echo "Error: Backup 4 (EOS-home Disk 2) failed."
+	fi
+) &
+
+wait # Wait for all backups to be done
 
 
+################
+# Borg Compact #
+################
 
+if [ $varname_compact = y ] ; then
+	for REPO in "$TARGET1" "$TARGET2" "$TARGET3" "$TARGET4"
+	do (
+		echo "Start borg compacting of $REPO."
+		borg compact $REPO
+	) &
+done
+
+wait
 
 
 #############################
 # Rsync Backups: ~/Pictures #
 #############################
 
-rsync -a --info=progress2 --no-inc-recursive /home/yuri/Pictures/ $TARGET5
-echo "> Completed backup 5/6 (Pictures Disk 1)" 
+if [ $varname_pictures = y ] ; then 
+	
+	# Again start in parallel
+	for TARGET in "$TARGET5" "$TARGET6"
+	do (
+		echo "Start backup of ~/Pictures to $TARGET"
+		rsync -a --info=progress2 --no-inc-recursive /home/yuri/Pictures/ "$TARGET"
+		echo "Completed backup of ~/Pictures to $TARGET" 
+	) &
+done
 
-rsync -a --info=progress2 --no-inc-recursive /home/yuri/Pictures/ $TARGET6
-echo "> Completed backup 6/6 (Pictures Disk 2)"
+wait 
 
-
-
+fi
 
 ##################################
 # Unmount the disk on user input #
 ##################################
-if [ $varname = y ] ;
-then umount $MOUNTPOINT1 && umount $MOUNTPOINT2 &&
-echo "Disks at $MOUNTPOINT1 and $MOUNTPOINT2 successfully unmounted."
-elif [ $varname = n ] ;
-then echo "Disks are still mounted."
+
+if [ $varname = y ] ; then
+	umount $MOUNTPOINT1 && umount $MOUNTPOINT2 &&
+		echo "Disks at $MOUNTPOINT1 and $MOUNTPOINT2 successfully unmounted."
+elif [ $varname = n ] ; then 
+	echo "Disks are still mounted."
 else 
 	echo "Invalid value. Disks will not be mounted."
 fi

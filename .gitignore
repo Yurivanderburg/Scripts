@@ -1,5 +1,3 @@
-venv
-apodfetch_apikey.txt
-test.py
-test.sh
-source_venv.sh 
+venv/
+source_venv.sh
+.ipynb_checkpoints 
