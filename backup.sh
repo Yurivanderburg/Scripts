@@ -32,8 +32,6 @@ DISK2=/etc/backups/backups.disk2
 # Read password from local file
 password=$(cat /etc/backups/backup.pw)
 
-echo "Do you want to unmount the disks after the backup? (y/n)"
-read varname_unmount
 
 echo "Do you want to compact the repositories after the backup? (y/n)"
 read varname_compact
@@ -210,17 +208,12 @@ wait
 
 fi
 
-##################################
-# Unmount the disk on user input #
-##################################
+####################
+# Unmount the disk #
+####################
 
-if [ $varname = y ] ; then
-	umount $MOUNTPOINT1 && umount $MOUNTPOINT2 &&
-		echo "Disks at $MOUNTPOINT1 and $MOUNTPOINT2 successfully unmounted."
-elif [ $varname = n ] ; then 
-	echo "Disks are still mounted."
-else 
-	echo "Invalid value. Disks will not be mounted."
-fi
+umount $MOUNTPOINT1 && umount $MOUNTPOINT2
+echo "Disks at $MOUNTPOINT1 and $MOUNTPOINT2 successfully unmounted."
 
-echo "Done!"
+
+echo "Backup complete."
