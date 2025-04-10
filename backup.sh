@@ -109,6 +109,7 @@ fi
 # Borg Backups: System & Home #
 ###############################
 
+
 BORG_OPTS="--stats --one-file-system --compression lz4 --checkpoint-interval 86400"
 
 export BORG_RELOCATED_REPO_ACCESS_IS_OK=yes
@@ -178,26 +179,26 @@ wait # Wait for all backups to be done
 # Borg Compact #
 ################
 
-if [ $varname_compact = y ] ; then
-	for REPO in "$TARGET1" "$TARGET2" "$TARGET3" "$TARGET4"
-	do (
+if [ "$varname_compact" = "y" ] ; then
+	for REPO in "$TARGET1" "$TARGET2" "$TARGET3" "$TARGET4" ; do
+	(
 		echo "Start borg compacting of $REPO."
-		borg compact $REPO
+		borg compact "$REPO"
 	) &
 done
 
 wait
-
+fi
 
 #############################
 # Rsync Backups: ~/Pictures #
 #############################
 
-if [ $varname_pictures = y ] ; then 
+if [ "$varname_pictures" = "y" ] ; then 
 	
 	# Again start in parallel
-	for TARGET in "$TARGET5" "$TARGET6"
-	do (
+	for TARGET in "$TARGET5" "$TARGET6" ; do
+	(
 		echo "Start backup of ~/Pictures to $TARGET"
 		rsync -a --info=progress2 --no-inc-recursive /home/yuri/Pictures/ "$TARGET"
 		echo "Completed backup of ~/Pictures to $TARGET" 
@@ -205,7 +206,6 @@ if [ $varname_pictures = y ] ; then
 done
 
 wait 
-
 fi
 
 ####################
